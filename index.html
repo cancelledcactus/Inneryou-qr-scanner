@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workshop QR & ID Scanner</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Workshop QR & ID Scanner</h1>
+    <p id="roomDisplay">Room: Not Set</p>
+
+    <div id="scanner"></div>
+
+    <div class="message" id="message">Waiting for scan...</div>
+
+    <div class="controls">
+      <button id="switchCam">🔄 Switch Camera</button>
+    </div>
+
+    <div class="settings">
+      <input type="text" id="roomInput" placeholder="Enter Room Name" />
+      <button id="setRoom">Set Room</button>
+    </div>
+  </div>
+
+  <div id="popup"></div>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="script.js"></script>
+</body>
+</html>

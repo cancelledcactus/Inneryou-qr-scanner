@@ -1,0 +1,114 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.container {
+  text-align: center;
+  width: 95%;
+  max-width: 420px;
+  background: #161b22;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+h1 {
+  font-size: 1.4em;
+  margin-bottom: 10px;
+}
+
+#scanner {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin-top: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.message {
+  margin-top: 15px;
+  font-size: 1em;
+  padding: 10px;
+  border-radius: 10px;
+  background: #21262d;
+  transition: background 0.3s;
+  min-height: 45px;
+}
+
+.settings {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+input {
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  width: 60%;
+}
+
+button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #238636;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2ea043;
+}
+
+.controls {
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: 95%;
+    padding: 15px;
+  }
+
+  h1 {
+    font-size: 1.2em;
+  }
+
+  #scanner {
+    aspect-ratio: 1 / 1;
+  }
+}
+
+/* Popup animation */
+#popup {
+  position: fixed;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #238636;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  font-weight: 500;
+  transition: all 0.5s ease;
+  opacity: 0;
+}
+
+#popup.show {
+  bottom: 40px;
+  opacity: 1;
+}
