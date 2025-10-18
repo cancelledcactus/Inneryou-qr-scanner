@@ -60,7 +60,6 @@ function parseData(code) {
 function sendToSheet(data) {
   fetch(WEB_APP_URL, {
     method: "POST",
-    mode: "no-cors", // avoids CORS issues
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
@@ -140,3 +139,4 @@ document.getElementById("switchCam").addEventListener("click", async () => {
 
 // --- Start scanner ---
 initScanner();
+
