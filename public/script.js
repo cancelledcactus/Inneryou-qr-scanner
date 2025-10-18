@@ -1,5 +1,10 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyGvlb4yYPsiCzHFc_gH5OfKTTsSotblGSKhfThpCknv3jywSyDwrS_4vHdrEljaXVrMA/exec";
+// === Dual QR + Barcode Scanner using ZXing ===
+// Supports QR, Code-39, Code-128, EAN, etc.
 
+const WEB_APP_URL =
+  "https://script.google.com/macros/s/AKfycbyGvlb4yYPsiCzHFc_gH5OfKTTsSotblGSKhfThpCknv3jywSyDwrS_4vHdrEljaXVrMA/exec";
+
+// ---- Room name setup ----
 let roomName = localStorage.getItem("roomName") || "Not Set";
 document.getElementById("roomDisplay").textContent = `Room: ${roomName}`;
 document.getElementById("setRoom").addEventListener("click", () => {
@@ -12,21 +17,23 @@ document.getElementById("setRoom").addEventListener("click", () => {
   }
 });
 
+// ---- Scanner variables ----
+const popup = document.getElementById("popup");
+const messageBox = document.getElementById("message");
+
+let codeReader = new ZXing.BrowserMultiFormatReader();
+let devices = [];
+let currentCameraIndex = 0;
 let lastScanned = "";
 let lastScanTime = 0;
-let currentCamera = { facingMode: "environment" }; // Default rear camera
-let html5QrCode = new Html5Qrcode("scanner");
-let camerasList = [];
-let currentCameraIndex = 0;
 
+// ---- Helpers ----
 function showMessage(text, color = "#238636") {
-  const msg = document.getElementById("message");
-  msg.style.background = color;
-  msg.textContent = text;
+  messageBox.style.background = color;
+  messageBox.textContent = text;
 }
 
 function showPopup(text, color = "#238636") {
-  const popup = document.getElementById("popup");
   popup.textContent = text;
   popup.style.background = color;
   popup.classList.add("show");
@@ -36,10 +43,9 @@ function showPopup(text, color = "#238636") {
 function sendToSheet(data) {
   fetch(WEB_APP_URL, {
     method: "POST",
-    mode: "no-cors",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
-  });
+  }).catch(() => showMessage("Network error", "#d73a49"));
 }
 
 function isValidQRFormat(code) {
@@ -64,6 +70,7 @@ function parseData(code) {
 function handleScan(code) {
   const now = Date.now();
 
+  // prevent fast duplicate scans
   if (code === lastScanned && now - lastScanTime < 4000) {
     showMessage("⚠️ Duplicate scan ignored", "#d29922");
     return;
@@ -88,43 +95,44 @@ function handleScan(code) {
   navigator.vibrate?.(100);
 }
 
-async function startScanner(cameraConfig) {
+// ---- Camera handling ----
+async function initScanner() {
   try {
-    await html5QrCode.start(
-      cameraConfig,
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      handleScan,
-      () => {}
-    );
+    devices = await codeReader.listVideoInputDevices();
+    if (devices.length === 0) {
+      showMessage("No camera found.", "#d73a49");
+      return;
+    }
+
+    startScanner(devices[currentCameraIndex].deviceId);
   } catch (err) {
-    showMessage("Camera start failed.", "#d73a49");
+    console.error(err);
+    showMessage("Camera initialization failed.", "#d73a49");
   }
 }
 
-Html5Qrcode.getCameras()
-  .then(devices => {
-    if (devices && devices.length) {
-      camerasList = devices;
-      currentCamera = { deviceId: { exact: devices[0].id } };
-      startScanner(currentCamera);
-    } else {
-      showMessage("No cameras found.", "#d73a49");
+function startScanner(deviceId) {
+  codeReader.decodeFromVideoDevice(deviceId, "scanner", (result, err) => {
+    if (result) {
+      handleScan(result.getText().trim());
     }
-  })
-  .catch(() => showMessage("Camera access failed.", "#d73a49"));
+  });
+}
 
 document.getElementById("switchCam").addEventListener("click", async () => {
-  if (camerasList.length < 2) {
+  if (devices.length < 2) {
     showMessage("Only one camera available.", "#d29922");
     return;
   }
 
-  currentCameraIndex = (currentCameraIndex + 1) % camerasList.length;
-  const newCam = camerasList[currentCameraIndex];
-
-  await html5QrCode.stop();
-  html5QrCode.clear();
-  showMessage(`🔁 Switched to camera: ${newCam.label || "Camera " + (currentCameraIndex + 1)}`);
+  currentCameraIndex = (currentCameraIndex + 1) % devices.length;
+  await codeReader.reset();
   showPopup("🔁 Switched camera");
-  startScanner({ deviceId: { exact: newCam.id } });
+  startScanner(devices[currentCameraIndex].deviceId);
+  showMessage(
+    `🔁 Camera: ${devices[currentCameraIndex].label || "Cam " + (currentCameraIndex + 1)}`
+  );
 });
+
+// ---- Start the scanner ----
+initScanner();
