@@ -1,12 +1,11 @@
-// === Dual QR + Barcode Scanner using ZXing ===
-// Supports QR, Code-39, Code-128, EAN, etc.
+// === ZXing QR + Barcode Scanner with Google Sheets ===
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyGvlb4yYPsiCzHFc_gH5OfKTTsSotblGSKhfThpCknv3jywSyDwrS_4vHdrEljaXVrMA/exec";
 
-const WEB_APP_URL =
-  "https://script.google.com/macros/s/AKfycbyGvlb4yYPsiCzHFc_gH5OfKTTsSotblGSKhfThpCknv3jywSyDwrS_4vHdrEljaXVrMA/exec";
-
-// ---- Room name setup ----
+// --- Room & Workshop ---
 let roomName = localStorage.getItem("roomName") || "Not Set";
+let workshopName = localStorage.getItem("workshopName") || "";
 document.getElementById("roomDisplay").textContent = `Room: ${roomName}`;
+
 document.getElementById("setRoom").addEventListener("click", () => {
   const val = document.getElementById("roomInput").value.trim();
   if (val) {
@@ -17,17 +16,10 @@ document.getElementById("setRoom").addEventListener("click", () => {
   }
 });
 
-// ---- Scanner variables ----
+// --- UI Helpers ---
 const popup = document.getElementById("popup");
 const messageBox = document.getElementById("message");
 
-let codeReader = new ZXing.BrowserMultiFormatReader();
-let devices = [];
-let currentCameraIndex = 0;
-let lastScanned = "";
-let lastScanTime = 0;
-
-// ---- Helpers ----
 function showMessage(text, color = "#238636") {
   messageBox.style.background = color;
   messageBox.textContent = text;
@@ -40,14 +32,11 @@ function showPopup(text, color = "#238636") {
   setTimeout(() => popup.classList.remove("show"), 2000);
 }
 
-function sendToSheet(data) {
-  fetch(WEB_APP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  }).catch(() => showMessage("Network error", "#d73a49"));
-}
+// --- Duplicate prevention ---
+let lastScanned = "";
+let lastScanTime = 0;
 
+// --- Parse QR or Barcode ---
 function isValidQRFormat(code) {
   return code.includes(",") && code.split(",").length === 2;
 }
@@ -67,11 +56,22 @@ function parseData(code) {
   }
 }
 
+// --- Send to Google Sheets ---
+function sendToSheet(data) {
+  fetch(WEB_APP_URL, {
+    method: "POST",
+    mode: "no-cors", // avoids CORS issues
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  showPopup("✅ Scan sent");
+}
+
+// --- Handle each scan ---
 function handleScan(code) {
   const now = Date.now();
 
-  // prevent fast duplicate scans
-  if (code === lastScanned && now - lastScanTime < 4000) {
+  if (code === lastScanned && now - lastScanTime < 3000) {
     showMessage("⚠️ Duplicate scan ignored", "#d29922");
     return;
   }
@@ -87,6 +87,7 @@ function handleScan(code) {
   lastScanTime = now;
 
   data.room = roomName;
+  data.workshop = workshopName || "Workshop";
   data.timestamp = new Date().toLocaleString();
 
   showMessage(`✅ Recorded: ${data.name} (${data.id})`);
@@ -95,33 +96,36 @@ function handleScan(code) {
   navigator.vibrate?.(100);
 }
 
-// ---- Camera handling ----
+// --- ZXing Camera Setup ---
+let codeReader = new ZXing.BrowserMultiFormatReader();
+let devices = [];
+let currentCameraIndex = 0;
+
 async function initScanner() {
   try {
     devices = await codeReader.listVideoInputDevices();
     if (devices.length === 0) {
-      showMessage("No camera found.", "#d73a49");
+      showMessage("❌ No camera found", "#d73a49");
       return;
     }
 
     startScanner(devices[currentCameraIndex].deviceId);
   } catch (err) {
     console.error(err);
-    showMessage("Camera initialization failed.", "#d73a49");
+    showMessage("Camera init failed", "#d73a49");
   }
 }
 
 function startScanner(deviceId) {
   codeReader.decodeFromVideoDevice(deviceId, "scanner", (result, err) => {
-    if (result) {
-      handleScan(result.getText().trim());
-    }
+    if (result) handleScan(result.getText().trim());
   });
 }
 
+// --- Switch Camera ---
 document.getElementById("switchCam").addEventListener("click", async () => {
   if (devices.length < 2) {
-    showMessage("Only one camera available.", "#d29922");
+    showMessage("Only one camera available", "#d29922");
     return;
   }
 
@@ -134,5 +138,5 @@ document.getElementById("switchCam").addEventListener("click", async () => {
   );
 });
 
-// ---- Start the scanner ----
+// --- Start scanner ---
 initScanner();
